@@ -9,7 +9,7 @@ __author__ = "besnier"
 human_alphabet = list('azertyuiopqsdfghjklmwxcvbn')
 
 
-etats = ["M", "I", "S"]
+states = ["M", "I", "S"]
 
 
 def delta(predicat):
