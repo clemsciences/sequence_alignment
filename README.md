@@ -1,19 +1,21 @@
 
 # Sequence alignment
 
-[deterministic_alignment.py](https://github.com/clemsciences/alignement_sequence/blob/master/deterministic_alignment.py)
+[deterministic_alignment.py](https://github.com/clemsciences/sequence_alignment/blob/master/deterministic_alignment.py)
 - Needleman-Wunsch algorithm: global alignment
 - Smith-Waterman algorithm: local alignment
 - Levenshtein distance: minimum number of operations (insertion, deletion, modification) to transform one sequence to an other sequence
 
-
-[blast.py](https://github.com/clemsciences/alignement_sequence/blob/master/blast.py) : heuristics to find local alignmentsin very long chains
-
-
-[main.py](https://github.com/clemsciences/alignement_sequence/blob/master/main.py) : examples of presented algorithms
+[phmm.py](https://github.com/clemsciences/sequence_alignment/blob/master/phmm.py) : Pair Hidden Markov Model implementation
 
 
-[recuperation_donnees.py](https://github.com/clemsciences/alignement_sequence/blob/master/data_retrival.py) : word retrieval thanks to nltk
+[blast.py](https://github.com/clemsciences/sequence_alignment/blob/master/blast.py) : heuristics to find local alignments in very long chains
+
+
+[main.py](https://github.com/clemsciences/sequence_alignment/blob/master/main.py) : examples of presented algorithms
+
+
+[data_retrieval.py](https://github.com/clemsciences/sequence_alignment/blob/master/data_retrieval.py) : word retrieval thanks to nltk
 
 1. Install nltk with # apt-get install nltk
 2. Download Swadesh corpus with
@@ -23,4 +25,4 @@
 ```
 
 
-[utils.py](https://github.com/clemsciences/alignement_sequence/blob/master/utils.py) : som useful functions which are unclassified
+[utils.py](https://github.com/clemsciences/sequence_alignment/blob/master/utils.py) : some useful functions which are unclassified
