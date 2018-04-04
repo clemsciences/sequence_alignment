@@ -138,22 +138,26 @@ def levenshtein_distance(chi, psi, replacement_matrix, penalty_is, alphabet):
 
 
 if __name__ == "__main__":
-    # sequence_1, sequence_2 = "aagtagccactag", "ggaagtaagct"
-    sequence_1, sequence_2 = "aggtac", "acgac"
-    matrice_log_odds = np.array([[5, -1, -1, -1], [-1, 5, -1, -1], [-1, -1, 5, -1], [-1, -1, -1, 5]])
-    d = 0.5
-    ali1, ali2, ali = align_needleman_wunsch(sequence_1, sequence_2, matrice_log_odds, d, alphabet_adn)
-    print("", "".join(ali1), "\n", "".join(ali2), "\n", "".join(ali))
-    # aligner_smith_waterman(sequence_1, sequence_2, matrice_log_odds, d)
+    # # sequence_1, sequence_2 = "aagtagccactag", "ggaagtaagct"
+    # sequence_1, sequence_2 = "aggtac", "acgac"
+    # matrice_log_odds = np.array([[5, -1, -1, -1], [-1, 5, -1, -1], [-1, -1, 5, -1], [-1, -1, -1, 5]])
+    # d = 0.5
+    # ali1, ali2, ali = align_needleman_wunsch(sequence_1, sequence_2, matrice_log_odds, d, alphabet_adn)
+    # print("", "".join(ali1), "\n", "".join(ali2), "\n", "".join(ali))
+    # # aligner_smith_waterman(sequence_1, sequence_2, matrice_log_odds, d)
+    #
+    # sequence_3 = "aaaaaaaaaatgtcattaaaaaaaa"
+    # sequence_4 = "ttttgtactggggggggggg"
+    # ali1, ali2, ali = align_smith_waterman(sequence_3, sequence_4, matrice_log_odds, d, alphabet_adn)
+    # print("", "".join(ali1), "\n", "".join(ali2), "\n", "".join(ali))
+    # matrice_levenshtein = np.ones((len(human_alphabet), len(human_alphabet))) + -1 * np.eye(len(human_alphabet))
+    # print(levenshtein_distance(sequence_1, sequence_2, matrice_levenshtein, 1, human_alphabet))
+    # print(levenshtein_distance(sequence_3, sequence_4, matrice_levenshtein, 1, human_alphabet))
+    # print(levenshtein_distance("niche", "chiens", matrice_levenshtein, 1, human_alphabet))
+    human_matrix = -1 * np.ones((len(human_alphabet), len(human_alphabet))) + \
+                   2 * np.eye(len(human_alphabet))
+    # print(align_needleman_wunsch("chiens", "niche", human_matrix, d, human_alphabet))
 
-    sequence_3 = "aaaaaaaaaatgtcattaaaaaaaa"
-    sequence_4 = "ttttgtactggggggggggg"
-    ali1, ali2, ali = align_smith_waterman(sequence_3, sequence_4, matrice_log_odds, d, alphabet_adn)
+    w1, w2 = "michtis", "myht"
+    ali1, ali2, ali = align_needleman_wunsch(w1, w2, human_matrix, 1, human_alphabet)
     print("", "".join(ali1), "\n", "".join(ali2), "\n", "".join(ali))
-    matrice_levenshtein = np.ones((len(human_alphabet), len(human_alphabet))) + -1 * np.eye(len(human_alphabet))
-    print(levenshtein_distance(sequence_1, sequence_2, matrice_levenshtein, 1, human_alphabet))
-    print(levenshtein_distance(sequence_3, sequence_4, matrice_levenshtein, 1, human_alphabet))
-    print(levenshtein_distance("niche", "chiens", matrice_levenshtein, 1, human_alphabet))
-    human_matrix = -5 * np.ones((len(human_alphabet), len(human_alphabet))) + \
-                   6 * np.eye(len(human_alphabet))
-    print(align_needleman_wunsch("chiens", "niche", human_matrix, d, human_alphabet))

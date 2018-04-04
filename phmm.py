@@ -206,12 +206,12 @@ def viterbi(phi, khi, param):
     # deletions[0, :] = 0
     optimal_path = []
 
-    for i in range(1, n+1):
-        for j in range(1, m+1):
+    for i in range(n):
+        for j in range(m):
             matches[i, j] = param.mat_emi_m.mat[alphabet.index(phi[i]), alphabet.index(khi[j])]*np.max([(1-2*param.mat_trans.delta - param.mat_trans.tau_m) * matches[i-1, j-1],
                                                                                                         (1-param.mat_trans.epsilon-param.mat_trans.tau_is - param.mat_trans._lambda) * insertions[i-1, j-1],
                                                                          (1-param.mat_trans.epsilon-param.mat_trans.tau_is - param.mat_trans._lambda) * deletions[i-1, j-1]])
-            matching_path[i, j] = np.argmax([(1-2*param.mat_trans.delta- param.mat_trans.tau_m) * matches[i-1, j-1],
+            matching_path[i, j] = np.argmax([(1-2*param.mat_trans.delta-param.mat_trans.tau_m) * matches[i-1, j-1],
                                              (1-param.mat_trans.epsilon-param.mat_trans.tau_is - param.mat_trans._lambda) * insertions[i-1, j-1],
                                              (1-param.mat_trans.epsilon-param.mat_trans.tau_is - param.mat_trans._lambda) * deletions[i-1, j-1]])
             # print(param.mat_emi_is[alphabet.index(khi[j])])
@@ -220,35 +220,37 @@ def viterbi(phi, khi, param):
             # print(param.mat_trans.epsilon)
             # print(insertions[i-1, j])
             # TODO correct ValueError: setting an array element with a sequence.
-            insertions[i, j] = param.mat_emi_is[alphabet.index(khi[j])] *\
+            insertions[i, j] = param.mat_emi_is.mat[alphabet.index(khi[j])] *\
                                np.max([param.mat_trans.delta * matches[i-1, j],
                                        param.mat_trans.epsilon *
                                        insertions[i-1, j]])
             insertion_path[i, j] = np.argmax([param.mat_trans.delta * matches[i-1, j], param.mat_trans.epsilon * insertions[i-1, j]])
-            deletions[i, j] = param.mat_emi_is[alphabet.index(khi[j])] * \
+            deletions[i, j] = param.mat_emi_is.mat[alphabet.index(khi[j])] * \
                               np.max([param.mat_trans.delta * matches[i, j-1],
                                       param.mat_trans.epsilon * deletions[i, j-1]])
             deletion_path[i, j] = np.argmax([param.mat_trans.delta * matches[i, j-1], param.mat_trans.epsilon * deletions[i, j-1]])
 
-            if i == n and j == m:
+            if i == n-1 and j == m-1:
                 end = np.max([param.mat_trans.tau_m * matches[n, m], param.mat_trans.tau_is*insertions[n, m], param.mat_trans.tau_is*deletions[n, m]])
                 final_state = np.argmax([param.mat_trans.tau_m * matches[n, m], param.mat_trans.tau_is*insertions[n, m], param.mat_trans.tau_is*deletions[n, m]])
 
     i = n
     j = m
-    state = states[final_state[0]]
+    state = states[final_state]  # finale_state[0]
     optimal_path.append(state)
     while i > 0 and j > 0:
+        # print(state)
         if state == "M":
             i -= 1
             j -= 1
-            state = states[matching_path[i, j][0]]
+            # print(matching_path[i, j])
+            state = states[int(matching_path[i, j])]#[0]]
         elif state == "I":
             i -= 1
-            state = states[insertion_path[i, j][0]]
+            state = states[int(insertion_path[i, j])]#[0]]
         elif state == "S":
             j -= 1
-            state = states[deletion_path[i, j][0]]
+            state = states[int(deletion_path[i, j])]#[0]]
         optimal_path.append(state)
     return optimal_path
 
@@ -260,7 +262,7 @@ def em_phmm_alphabeta(l_paires):
     # Initialisation
     pseudo_compte = 0.0001
     param = PHMMParameters(nr.random(), nr.random(), nr.random(), nr.random(), nr.random(), pseudo_compte)
-
+    # while diff > precision:
     for tour in range(10):
         ksis = []
         gammas = []
@@ -344,16 +346,16 @@ if __name__ == "__main__":
     print(States.MATCHING.value)
     print(States.DELETION.value)
     print(States.INSERTION.value)
-    l = [["eye", "ee", "each", "oog", "oug", "ooch", "a", "auge", "oyg",	"øje", "öga", "eyga", "auga", "øye", "auga", "augoo"]]
-    l_paires = list_to_pairs(l)
+    mots = [["eye", "ee", "each", "oog", "oug", "ooch", "a", "auge", "oyg",	"øje", "öga", "eyga", "auga", "øye", "auga", "augoo"]]
+    l_paires = list_to_pairs(mots)
     print(l_paires)
     param = em_phmm_alphabeta(l_paires)
-    mot1 = "eye"
-    mot2 = "augo"
+    mot1 = "oug"
+    mot2 = "øye"
     meilleur_alignement = viterbi(mot1, mot2, param)
     print(mot1)
     print(mot2)
     print(meilleur_alignement)
 
 
-
+    # test_list_to_pairs()
