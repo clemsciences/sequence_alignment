@@ -80,18 +80,21 @@ class EmissionMatrix:
 
     def update_tau_is(self, n_is_fin):
         nume = n_is_fin
-        denomi = n_is_fin + np.sum(self.freq_transitions[States.INSERTION.value, :]) + np.sum(self.freq_transitions[States.DELETION, :])
+        denomi = n_is_fin + np.sum(self.freq_transitions[States.INSERTION.value, :]) + np.sum(self.freq_transitions[States.DELETION.value, :])
         self.tau_is = nume / denomi
 
     def update_lambda(self):
-        nume = self.freq_transitions[States.E_INSER, States.DELETION] + self.freq_transitions[States.DELETION, States.INSERTION]
-        denomi = np.sum(self.freq_transitions[States.INSERTION, :]) + np.sum(self.freq_transitions[States.DELETION, :])
+        nume = self.freq_transitions[States.INSERTION.value, States.DELETION.value] + self.freq_transitions[States.DELETION.value, States.INSERTION.value]
+        denomi = np.sum(self.freq_transitions[States.INSERTION.value, :]) + np.sum(self.freq_transitions[States.DELETION.value, :])
         self._lambda = nume / denomi
 
     def get_transition_matrix(self):
         return np.array([[1-2*self.delta, self.delta, self.delta],
                          [1-self.epsilon-self._lambda, self.epsilon, self._lambda],
                          [1-self._lambda-self.epsilon, self._lambda, self.epsilon]])
+
+    def set_freq_transitions(self, mat):
+        self.freq_transitions = mat
 
     def get_final_transition(self):
         return np.array([self.tau_m, self.tau_is, self.tau_is])
@@ -136,7 +139,7 @@ class PHMMParameters:
     def update_params(self, n_m_fin, n_is_fin):
         epsilon, delta, tau_m, tau_is, _lambda = self.mat_trans.get_values()
         self.mat_trans.update_params(n_m_fin, n_is_fin)
-        diff = abs(epsilon- self.mat_trans.epsilon) + abs(delta - self.mat_trans.delta) + abs(tau_m - self.mat_trans.tau_m) +\
+        diff = abs(epsilon - self.mat_trans.epsilon) + abs(delta - self.mat_trans.delta) + abs(tau_m - self.mat_trans.tau_m) +\
                abs(tau_is - self.mat_trans.tau_is) + abs(_lambda - self.mat_trans._lambda)
         return diff
 
@@ -167,7 +170,7 @@ def compute_forward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin):
                                  np.sum(mat_tra[1, :] * alpha[i-1, j, :])
                 alpha[i, j, 2] = mat_emi_is[alphabet.index(khi[j])] * \
                                  np.sum(mat_tra[2, :] * alpha[i, j-1, :])
-                alpha[i, j, :] /= np.sum(alpha[i, j, :])+0.0001
+                alpha[i, j, :] /= np.sum(alpha[i, j, :])
     alpha_fin = np.sum(trans_fin * alpha[len(phi), len(khi), :])
     return alpha, alpha_fin
 
@@ -210,7 +213,7 @@ def viterbi(phi, khi, param):
         for j in range(m):
             matches[i, j] = param.mat_emi_m.mat[alphabet.index(phi[i]), alphabet.index(khi[j])]*np.max([(1-2*param.mat_trans.delta - param.mat_trans.tau_m) * matches[i-1, j-1],
                                                                                                         (1-param.mat_trans.epsilon-param.mat_trans.tau_is - param.mat_trans._lambda) * insertions[i-1, j-1],
-                                                                         (1-param.mat_trans.epsilon-param.mat_trans.tau_is - param.mat_trans._lambda) * deletions[i-1, j-1]])
+                                                                                                        (1-param.mat_trans.epsilon-param.mat_trans.tau_is - param.mat_trans._lambda) * deletions[i-1, j-1]])
             matching_path[i, j] = np.argmax([(1-2*param.mat_trans.delta-param.mat_trans.tau_m) * matches[i-1, j-1],
                                              (1-param.mat_trans.epsilon-param.mat_trans.tau_is - param.mat_trans._lambda) * insertions[i-1, j-1],
                                              (1-param.mat_trans.epsilon-param.mat_trans.tau_is - param.mat_trans._lambda) * deletions[i-1, j-1]])
@@ -234,25 +237,42 @@ def viterbi(phi, khi, param):
                 end = np.max([param.mat_trans.tau_m * matches[n, m], param.mat_trans.tau_is*insertions[n, m], param.mat_trans.tau_is*deletions[n, m]])
                 final_state = np.argmax([param.mat_trans.tau_m * matches[n, m], param.mat_trans.tau_is*insertions[n, m], param.mat_trans.tau_is*deletions[n, m]])
 
+    # print(matching_path)
+    print(matches)
+    # print(insertion_path)
+    print(insertions)
+    # print(deletion_path)
+    print(deletions)
     i = n
     j = m
     state = states[final_state]  # finale_state[0]
-    optimal_path.append(state)
+    # optimal_path.append(state)
+    seq1 = []
+    seq2 = []
     while i > 0 and j > 0:
         # print(state)
-        if state == "M":
+        if state == "M" and i > 0 and j > 0:
             i -= 1
             j -= 1
             # print(matching_path[i, j])
-            state = states[int(matching_path[i, j])]#[0]]
-        elif state == "I":
+            state = states[int(matching_path[i, j])]  # [0]]
+            seq1.append(phi[i])
+            seq2.append(khi[j])
+        elif state == "I" and i > 0:
             i -= 1
-            state = states[int(insertion_path[i, j])]#[0]]
-        elif state == "S":
+            state = states[int(insertion_path[i, j])]  # [0]]
+            seq1.append(phi[i])
+            seq2.append("-")
+        elif state == "S" and j > 0:
             j -= 1
-            state = states[int(deletion_path[i, j])]#[0]]
+            state = states[int(deletion_path[i, j])]  # [0]]
+            seq1.append("-")
+            seq2.append(khi[j])
         optimal_path.append(state)
-    return optimal_path
+        optimal_path.reverse()
+        seq1.reverse()
+        seq2.reverse()
+    return optimal_path, seq1, seq2
 
 
 def em_phmm_alphabeta(l_paires):
@@ -298,6 +318,7 @@ def em_phmm_alphabeta(l_paires):
                                                                   transi[l.value, States.DELETION.value] * \
                                                                   param.mat_emi_is.mat[alphabet.index(khi[j])] * \
                                                                   beta[i, j, States.DELETION.value]
+                        print(alpha_fin)
                         ksis[h][i, j, l.value, :] /= alpha_fin  # normalisation
                         gammas[h][i, j, l.value] = alpha[i, j, l]*beta[i, j, l.value]
                         # probability of a path given the both sequences
@@ -311,6 +332,8 @@ def em_phmm_alphabeta(l_paires):
             for m in States:
                 a[l.value, m.value] = np.sum([np.sum(np.sum(ksis[h][:, :, l.value, m.value])) for h in range(len(l_paires))])
             a[l.value, :] /= np.sum(a[l.value, :])
+        param.mat_trans.set_freq_transitions(a)
+        # param.mat_trans.update_params(1, 1)
         # instancier a dans param de manière correcte !
         # il faut convertir la matrice de transition en paramètres de cette matrice
 
@@ -337,7 +360,7 @@ def em_phmm_alphabeta(l_paires):
 
         param.mat_emi_m.set_emission_matrix(pi_m)
         param.mat_emi_is.set_emission_matrix(pi_is)
-        # diff = param.update_params(n_m_fin, n_is_fin)
+        diff = param.update_params(1, 1)
 
     return param
 
@@ -350,11 +373,17 @@ if __name__ == "__main__":
     l_paires = list_to_pairs(mots)
     print(l_paires)
     param = em_phmm_alphabeta(l_paires)
+    print(param.mat_emi_is.mat)
+    print(param.mat_emi_m.mat)
+    print(param.mat_trans.get_values())
     mot1 = "oug"
     mot2 = "øye"
-    meilleur_alignement = viterbi(mot1, mot2, param)
+    meilleur_alignement, seq1, seq2 = viterbi(mot1, mot2, param)
+
     print(mot1)
     print(mot2)
+    print(seq1)
+    print(seq2)
     print(meilleur_alignement)
 
 
