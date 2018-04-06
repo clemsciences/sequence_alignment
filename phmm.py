@@ -11,12 +11,16 @@ __author__ = "Clément Besnier <clemsciences@aol.com>"
 
 alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "ø", "ö"]
 
+EPSILON = 0.00000000001
+
 
 class CoupleEmissionMatrix:
     def __init__(self, alphabet):
         self.alphabet = alphabet
         self.n = len(alphabet)
-        self.mat = np.zeros((self.n, self.n))
+        self.mat = nr.rand(self.n * self.n).reshape((self.n, self.n))
+        self.mat /= self.mat.sum(axis=1)
+        # self.mat = np.zeros((self.n, self.n))
 
     def get_emission_matrix(self):
         return self.mat
@@ -35,7 +39,9 @@ class SimpleEmissionMatrix:
     def __init__(self, alphabet):
         self.alphabet = alphabet
         self.n = len(alphabet)
-        self.mat = np.zeros((self.n,))
+        self.mat = nr.rand(self.n).reshape((self.n,))
+        self.mat /= self.mat.sum()
+        # self.mat = np.zeros((self.n,))
 
     def get_emission_matrix(self):
         return self.mat
@@ -65,30 +71,34 @@ class EmissionMatrix:
 
     def update_epsilon(self):
         nume = self.freq_transitions[States.INSERTION.value, States.INSERTION.value] + self.freq_transitions[States.DELETION.value, States.DELETION.value]
-        denomi = np.sum(self.freq_transitions[States.INSERTION.value, :]) + np.sum(self.freq_transitions[States.DELETION.value, :])
+        denomi = np.sum(self.freq_transitions[States.INSERTION.value, :]) + np.sum(self.freq_transitions[States.DELETION.value, :]) + EPSILON
         self.epsilon = nume / denomi
 
     def update_delta(self):
         nume = self.freq_transitions[States.MATCHING.value, States.INSERTION.value] + self.freq_transitions[States.MATCHING.value, States.DELETION.value]
-        denomi = np.sum(self.freq_transitions[States.MATCHING.value, :])
-        self.delta = nume /denomi
+        denomi = np.sum(self.freq_transitions[States.MATCHING.value, :]) + EPSILON
+        self.delta = nume / denomi
 
     def update_tau_m(self, n_m_fin):
         nume = n_m_fin
-        denomi = n_m_fin + np.sum(self.freq_transitions[States.MATCHING.value, :])
+        denomi = n_m_fin + np.sum(self.freq_transitions[States.MATCHING.value, :]) + EPSILON
         self.tau_m = nume / denomi
 
     def update_tau_is(self, n_is_fin):
         nume = n_is_fin
-        denomi = n_is_fin + np.sum(self.freq_transitions[States.INSERTION.value, :]) + np.sum(self.freq_transitions[States.DELETION.value, :])
+        denomi = n_is_fin + np.sum(self.freq_transitions[States.INSERTION.value, :]) + np.sum(self.freq_transitions[States.DELETION.value, :]) + EPSILON
         self.tau_is = nume / denomi
 
     def update_lambda(self):
         nume = self.freq_transitions[States.INSERTION.value, States.DELETION.value] + self.freq_transitions[States.DELETION.value, States.INSERTION.value]
-        denomi = np.sum(self.freq_transitions[States.INSERTION.value, :]) + np.sum(self.freq_transitions[States.DELETION.value, :])
+        denomi = np.sum(self.freq_transitions[States.INSERTION.value, :]) + np.sum(self.freq_transitions[States.DELETION.value, :]) + EPSILON
         self._lambda = nume / denomi
 
     def get_transition_matrix(self):
+        # print("matrice de transition")
+        # print(np.array([[1-2*self.delta, self.delta, self.delta],
+        #                  [1-self.epsilon-self._lambda, self.epsilon, self._lambda],
+        #                  [1-self._lambda-self.epsilon, self._lambda, self.epsilon]]))
         return np.array([[1-2*self.delta, self.delta, self.delta],
                          [1-self.epsilon-self._lambda, self.epsilon, self._lambda],
                          [1-self._lambda-self.epsilon, self._lambda, self.epsilon]])
@@ -145,7 +155,7 @@ class PHMMParameters:
 
 
 def compute_forward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin):
-    alpha = np.zeros((len(phi)+1, len(khi)+1, mat_tra.shape[0]))
+    alpha = np.zeros((len(phi), len(khi), mat_tra.shape[0]))
     alpha[0, 0, 0] = 1
     for i in range(len(phi)):
         for j in range(len(khi)):
@@ -170,8 +180,11 @@ def compute_forward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin):
                                  np.sum(mat_tra[1, :] * alpha[i-1, j, :])
                 alpha[i, j, 2] = mat_emi_is[alphabet.index(khi[j])] * \
                                  np.sum(mat_tra[2, :] * alpha[i, j-1, :])
-                alpha[i, j, :] /= np.sum(alpha[i, j, :])
-    alpha_fin = np.sum(trans_fin * alpha[len(phi), len(khi), :])
+                print("\\alpha i j", alpha[i, j, :])
+                alpha[i, j, :] /= np.sum(alpha[i, j, :]) + EPSILON
+    print("trans_fin", trans_fin)
+    print("alpha_fin", alpha[len(phi)-1, len(khi)-1, :])
+    alpha_fin = np.sum(trans_fin * alpha[len(phi)-1, len(khi)-1, :])
     return alpha, alpha_fin
 
 
@@ -318,7 +331,7 @@ def em_phmm_alphabeta(l_paires):
                                                                   transi[l.value, States.DELETION.value] * \
                                                                   param.mat_emi_is.mat[alphabet.index(khi[j])] * \
                                                                   beta[i, j, States.DELETION.value]
-                        print(alpha_fin)
+                        # print(alpha_fin)
                         ksis[h][i, j, l.value, :] /= alpha_fin  # normalisation
                         gammas[h][i, j, l.value] = alpha[i, j, l]*beta[i, j, l.value]
                         # probability of a path given the both sequences
@@ -330,9 +343,13 @@ def em_phmm_alphabeta(l_paires):
         a = np.zeros((3, 3))
         for l in States:
             for m in States:
-                a[l.value, m.value] = np.sum([np.sum(np.sum(ksis[h][:, :, l.value, m.value])) for h in range(len(l_paires))])
-            a[l.value, :] /= np.sum(a[l.value, :])
+                a[l.value, m.value] = np.sum([np.sum(np.sum(ksis[g][:, :, l.value, m.value])) for g in range(len(l_paires))])
+            if np.sum(a[l.value, :]) == 0:
+                a[l.value, :] = 0
+            else:
+                a[l.value, :] /= np.sum(a[l.value, :])
         param.mat_trans.set_freq_transitions(a)
+        # TODO problème : on ne peut pas à la fois instancier une matrice entière et instancier par des paramètres
         # param.mat_trans.update_params(1, 1)
         # instancier a dans param de manière correcte !
         # il faut convertir la matrice de transition en paramètres de cette matrice
