@@ -9,7 +9,7 @@ from utils import *
 __author__ = "Clément Besnier <clemsciences@aol.com>"
 
 
-alphabet = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "ø", "ö"]
+alphabet_ger = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "ø", "ö"]
 
 EPSILON = 0.00000000001
 
@@ -57,17 +57,17 @@ class SimpleEmissionMatrix:
 
 
 class EmissionMatrix:
-    def __init__(self, epsilon, delta, tau_m, tau_is, _lambda):
+    def __init__(self, epsilon, delta_, tau_m, tau_is, lambda_):
         self.epsilon = epsilon
-        self.delta = delta
+        self.delta_ = delta_
         self.tau_m = tau_m
         self.tau_is = tau_is
-        self._lambda = _lambda
+        self.lambda_ = lambda_
         self.freq_transitions = np.zeros((3, 3))
         # def add_transition(self, l, m):
 
     def get_values(self):
-        return self.epsilon, self.delta, self.tau_m, self.tau_is, self._lambda
+        return self.epsilon, self.delta_, self.tau_m, self.tau_is, self.lambda_
 
     def update_epsilon(self):
         nume = self.freq_transitions[States.INSERTION.value, States.INSERTION.value] + self.freq_transitions[States.DELETION.value, States.DELETION.value]
@@ -77,7 +77,7 @@ class EmissionMatrix:
     def update_delta(self):
         nume = self.freq_transitions[States.MATCHING.value, States.INSERTION.value] + self.freq_transitions[States.MATCHING.value, States.DELETION.value]
         denomi = np.sum(self.freq_transitions[States.MATCHING.value, :]) + EPSILON
-        self.delta = nume / denomi
+        self.delta_ = nume / denomi
 
     def update_tau_m(self, n_m_fin):
         nume = n_m_fin
@@ -99,9 +99,9 @@ class EmissionMatrix:
         # print(np.array([[1-2*self.delta, self.delta, self.delta],
         #                  [1-self.epsilon-self._lambda, self.epsilon, self._lambda],
         #                  [1-self._lambda-self.epsilon, self._lambda, self.epsilon]]))
-        return np.array([[1-2*self.delta, self.delta, self.delta],
-                         [1-self.epsilon-self._lambda, self.epsilon, self._lambda],
-                         [1-self._lambda-self.epsilon, self._lambda, self.epsilon]])
+        return np.array([[1-2*self.delta_, self.delta_, self.delta_],
+                         [1-self.epsilon-self.lambda_, self.epsilon, self.lambda_],
+                         [1-self.lambda_-self.epsilon, self.lambda_, self.epsilon]])
 
     def set_freq_transitions(self, mat):
         self.freq_transitions = mat
@@ -118,12 +118,12 @@ class EmissionMatrix:
 
 
 class PHMMParameters:
-    def __init__(self, epsilon, delta, tau_m, tau_is, _lambda, pseudo_compte):
-        self.mat_trans = EmissionMatrix(epsilon, delta, tau_m, tau_is, _lambda)
+    def __init__(self, epsilon, delta_, tau_m, tau_is, lambda_, pseudo_compte, alphabet):
+        self.mat_trans = EmissionMatrix(epsilon, delta_, tau_m, tau_is, lambda_)
         self.mat_emi_m = CoupleEmissionMatrix(alphabet)
         self.mat_emi_is = SimpleEmissionMatrix(alphabet)
         self.pseudo_compte = pseudo_compte
-
+        self.alphabet = alphabet
     # def compute_freq_emissions(self, l_couples_alignes):
     #     for phi, chi in l_couples:
 
@@ -147,14 +147,14 @@ class PHMMParameters:
     #     return nume / denomi
 
     def update_params(self, n_m_fin, n_is_fin):
-        epsilon, delta, tau_m, tau_is, _lambda = self.mat_trans.get_values()
+        epsilon, delta_, tau_m, tau_is, lambda_ = self.mat_trans.get_values()
         self.mat_trans.update_params(n_m_fin, n_is_fin)
-        diff = abs(epsilon - self.mat_trans.epsilon) + abs(delta - self.mat_trans.delta) + abs(tau_m - self.mat_trans.tau_m) +\
-               abs(tau_is - self.mat_trans.tau_is) + abs(_lambda - self.mat_trans._lambda)
+        diff = abs(epsilon - self.mat_trans.epsilon) + abs(delta_ - self.mat_trans.delta_) + abs(tau_m - self.mat_trans.tau_m) +\
+               abs(tau_is - self.mat_trans.tau_is) + abs(lambda_ - self.mat_trans.lambda_)
         return diff
 
 
-def compute_forward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin):
+def compute_forward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin, alphabet):
     alpha = np.zeros((len(phi), len(khi), mat_tra.shape[0]))
     alpha[0, 0, 0] = 1
     for i in range(len(phi)):
@@ -180,26 +180,30 @@ def compute_forward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin):
                                  np.sum(mat_tra[1, :] * alpha[i-1, j, :])
                 alpha[i, j, 2] = mat_emi_is[alphabet.index(khi[j])] * \
                                  np.sum(mat_tra[2, :] * alpha[i, j-1, :])
-                print("\\alpha i j", alpha[i, j, :])
+                # print("\\alpha i j", alpha[i, j, :])
                 alpha[i, j, :] /= np.sum(alpha[i, j, :]) + EPSILON
-    print("trans_fin", trans_fin)
-    print("alpha_fin", alpha[len(phi)-1, len(khi)-1, :])
+    # print("trans_fin", trans_fin)
+    # print("alpha_fin", alpha[len(phi)-1, len(khi)-1, :])
     alpha_fin = np.sum(trans_fin * alpha[len(phi)-1, len(khi)-1, :])
     return alpha, alpha_fin
 
 
-def compute_backward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin):
+def compute_backward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin, alphabet):
     beta = np.zeros((len(phi)+1, len(khi)+1, mat_tra.shape[0]))
+    print(len(phi) + 1, len(khi) + 1, mat_tra.shape[0])
     beta[len(phi), len(khi), :] = trans_fin
-    for i in range(len(phi)-2, -1, -1):
-        for j in range(len(khi)-2, -1, -1):
+    for i in range(len(phi)-1, -1, -1):
+        for j in range(len(khi)-1, -1, -1):
             for k in States:
                 # print(mat_emi_m.shape)
                 # print(mat_emi_is.shape)
                 # print(mat_emi_m)
-                emi = np.array([mat_emi_m[alphabet.index(phi[i+1]), alphabet.index(khi[j+1])],
-                                mat_emi_is[alphabet.index(phi[i+1])], mat_emi_is[alphabet.index(khi[j+1])]])
-                beta_transition = np.array([beta[i+1, j+1, 0], beta[i+1, j, 1], beta[i, j+1, 2]])
+                emi = np.array([mat_emi_m[alphabet.index(phi[i]), alphabet.index(khi[j])],
+                                mat_emi_is[alphabet.index(phi[i])], mat_emi_is[alphabet.index(khi[j])]])
+                print(emi)
+                print(i+1, j+1, i, j)
+                print([beta[i+1, j+1, 0], beta[i+1, j, 1], beta[i, j+1, 2]])
+                beta_transition = np.array([beta[i+1, j+1, 0], beta[i+1, j, 1], beta[i, j+1, 2]])  # problème, le résultat est nul
                 beta[i, j, k] = np.sum((emi * mat_tra[k, :]) * beta_transition)
     return beta
 
@@ -221,6 +225,7 @@ def viterbi(phi, khi, param):
     # deletions[:, 0] = 0
     # deletions[0, :] = 0
     optimal_path = []
+    alphabet = param.alphabet
 
     for i in range(n):
         for j in range(m):
@@ -288,13 +293,13 @@ def viterbi(phi, khi, param):
     return optimal_path, seq1, seq2
 
 
-def em_phmm_alphabeta(l_paires):
+def em_phmm_alphabeta(l_paires, alphabet):
     precision = 0.02
     diff = 0.3
 
     # Initialisation
     pseudo_compte = 0.0001
-    param = PHMMParameters(nr.random(), nr.random(), nr.random(), nr.random(), nr.random(), pseudo_compte)
+    param = PHMMParameters(0.2, 0.3, 0.4, 0.3, 0.25, pseudo_compte, alphabet)
     # while diff > precision:
     for tour in range(10):
         ksis = []
@@ -302,9 +307,9 @@ def em_phmm_alphabeta(l_paires):
         for h in range(len(l_paires)):
             phi, khi = l_paires[h]
             alpha, alpha_fin = compute_forward(phi, khi, param.mat_trans.get_transition_matrix(), param.mat_emi_m.mat,
-                                    param.mat_emi_is.mat, param.mat_trans.get_final_transition())
+                                    param.mat_emi_is.mat, param.mat_trans.get_final_transition(), alphabet)
             beta = compute_backward(phi, khi, param.mat_trans.get_transition_matrix(), param.mat_emi_m.mat,
-                                    param.mat_emi_is.mat, param.mat_trans.get_final_transition())
+                                    param.mat_emi_is.mat, param.mat_trans.get_final_transition(), alphabet)
 
             transi = param.mat_trans.get_transition_matrix()
 
@@ -332,7 +337,8 @@ def em_phmm_alphabeta(l_paires):
                                                                   param.mat_emi_is.mat[alphabet.index(khi[j])] * \
                                                                   beta[i, j, States.DELETION.value]
                         # print(alpha_fin)
-                        ksis[h][i, j, l.value, :] /= alpha_fin  # normalisation
+                        print("alpha", alpha[i, j, l.value], "beta", beta[i, j, :], "transi", transi[l.value, :],  "m_emi", param.mat_emi_m.mat[alphabet.index(phi[i]), alphabet.index(khi[j])], "ksi", ksis[h][i, j, l.value, :])
+                        ksis[h][i, j, l.value, :] /= np.sum(ksis[h][i, j, l.value, :])  # alpha_fin  # normalisation
                         gammas[h][i, j, l.value] = alpha[i, j, l]*beta[i, j, l.value]
                         # probability of a path given the both sequences
                     gammas[h][i, j, :] /= np.sum(alpha[i, j, :]*beta[i, j, :])+0.00000001  # normalisation
@@ -389,7 +395,7 @@ if __name__ == "__main__":
     mots = [["eye", "ee", "each", "oog", "oug", "ooch", "a", "auge", "oyg",	"øje", "öga", "eyga", "auga", "øye", "auga", "augoo"]]
     l_paires = list_to_pairs(mots)
     print(l_paires)
-    param = em_phmm_alphabeta(l_paires)
+    param = em_phmm_alphabeta(l_paires, alphabet_ger)
     print(param.mat_emi_is.mat)
     print(param.mat_emi_m.mat)
     print(param.mat_trans.get_values())
@@ -402,6 +408,5 @@ if __name__ == "__main__":
     print(seq1)
     print(seq2)
     print(meilleur_alignement)
-
 
     # test_list_to_pairs()
