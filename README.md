@@ -26,3 +26,6 @@
 
 
 [utils.py](https://github.com/clemsciences/sequence_alignment/blob/master/utils.py) : some useful functions which are unclassified
+
+
+TODO: learning to align pairs of sequences with a Pair Hidden Markov Model.
