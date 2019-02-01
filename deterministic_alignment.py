@@ -49,7 +49,11 @@ def align_needleman_wunsch(chi, psi, replacement_matrix, penalty_is, alphabet):
             i, j = i - 1, j - 1
             chi_alignment.append(chi[i])
             psi_alignment.append(psi[j])
-            alignment.append("C")
+            if chi[i] == psi[j]:
+                alignment.append("C")
+            else:
+                alignment.append("M")
+
         elif ori == States.INSERTION and i > 0:
             i -= 1
             chi_alignment.append(chi[i])

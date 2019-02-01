@@ -6,7 +6,7 @@ import numpy as np
 from utils import *
 import data_retrieval as rd
 import deterministic_alignment as ad
-import alignement_phmm as ap
+import phmm as ap
 
 
 __author__ = "Clément Besnier <clemsciences@aol.com>"
