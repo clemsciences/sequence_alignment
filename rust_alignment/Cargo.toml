@@ -1,0 +1,10 @@
+[package]
+name = "rust_alignment"
+version = "0.1.0"
+authors = ["Clément Besnier <clem@clementbesnier.fr>"]
+edition = "2018"
+description = "Will improve performance of Python code for alignment of strings"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
