@@ -1,4 +1,6 @@
-# -*-coding:utf-8-*-
+"""
+
+"""
 
 import numpy as np
 import numpy.random as nr
@@ -6,12 +8,12 @@ from setuptools.command.test import test
 
 from utils import *
 
-__author__ = "Clément Besnier <clemsciences@aol.com>"
+__author__ = "Clément Besnier <clem@clementbesnier.fr>"
 
 alphabet_ger = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
                 "u", "v", "w", "x", "y", "z", "ø", "ö"]
 
-EPSILON = 0.00000000001
+EPSILON = 1e-6
 
 
 class CoupleEmissionMatrix:
@@ -238,33 +240,33 @@ def viterbi(phi, khi, param):
     for i in range(n):
         for j in range(m):
             matches[i, j] = param.mat_emi_m.mat[alphabet.index(phi[i]), alphabet.index(khi[j])] * \
-                            np.max([(1 - 2 * param.mat_trans.delta - param.mat_trans.tau_m) * matches[i - 1, j - 1],
+                            np.max([(1 - 2 * param.mat_trans.delta_ - param.mat_trans.tau_m) * matches[i - 1, j - 1],
                                     (1 - param.mat_trans.epsilon - param.mat_trans.tau_is - param.mat_trans.lambda_) *
                                     insertions[i - 1, j - 1],
                                     (1 - param.mat_trans.epsilon - param.mat_trans.tau_is - param.mat_trans.lambda_) *
                                     deletions[i - 1, j - 1]])
             matching_path[i, j] = np.argmax(
-                [(1 - 2 * param.mat_trans.delta - param.mat_trans.tau_m) * matches[i - 1, j - 1],
+                [(1 - 2 * param.mat_trans.delta_ - param.mat_trans.tau_m) * matches[i - 1, j - 1],
                  (1 - param.mat_trans.epsilon - param.mat_trans.tau_is -
                   param.mat_trans.lambda_) * insertions[i - 1, j - 1],
                  (1 - param.mat_trans.epsilon - param.mat_trans.tau_is -
                   param.mat_trans.lambda_) * deletions[i - 1, j - 1]])
             # print(param.mat_emi_is[alphabet.index(khi[j])])
-            # print(param.mat_trans.delta)
+            # print(param.mat_trans.delta_)
             # print(matches[i-1, j])
             # print(param.mat_trans.epsilon)
             # print(insertions[i-1, j])
             # TODO correct ValueError: setting an array element with a sequence.
             insertions[i, j] = param.mat_emi_is.mat[alphabet.index(khi[j])] * \
-                               np.max([param.mat_trans.delta * matches[i - 1, j],
+                               np.max([param.mat_trans.delta_ * matches[i - 1, j],
                                        param.mat_trans.epsilon *
                                        insertions[i - 1, j]])
-            insertion_path[i, j] = np.argmax([param.mat_trans.delta * matches[i - 1, j],
+            insertion_path[i, j] = np.argmax([param.mat_trans.delta_ * matches[i - 1, j],
                                               param.mat_trans.epsilon * insertions[i - 1, j]])
             deletions[i, j] = param.mat_emi_is.mat[alphabet.index(khi[j])] * \
-                              np.max([param.mat_trans.delta * matches[i, j - 1],
+                              np.max([param.mat_trans.delta_ * matches[i, j - 1],
                                       param.mat_trans.epsilon * deletions[i, j - 1]])
-            deletion_path[i, j] = np.argmax([param.mat_trans.delta * matches[i, j - 1],
+            deletion_path[i, j] = np.argmax([param.mat_trans.delta_ * matches[i, j - 1],
                                              param.mat_trans.epsilon * deletions[i, j - 1]])
 
             if i == n - 1 and j == m - 1:
@@ -320,7 +322,7 @@ def em_phmm_alphabeta(l_pairs, alphabet):
     pseudo_counter = 0.0001
     param = PHMMParameters(0.2, 0.3, 0.4, 0.3, 0.25, pseudo_counter, alphabet)
     # while diff > precision:
-    for tour in range(10):
+    for _ in range(3):
         ksis = []
         gammas = []
         for h in range(len(l_pairs)):

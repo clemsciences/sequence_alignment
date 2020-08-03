@@ -1,20 +1,22 @@
-# -*-coding:utf-8-*-
+"""
 
+"""
 
 import enum
+import itertools
 import numpy as np
 
 
-__author__ = "besnier"
+__author__ = "Clément Besnier <clem@clementbesnier.fr>"
 
-human_alphabet = list('azertyuiopqsdfghjklmwxcvbn')
+roman_alphabet = list('abcdefghijklmnopqrstuvwxyz')
 
 
 states = ["M", "I", "S"]
 
 
-def delta(predicat):
-    if predicat:
+def delta(predicate):
+    if predicate:
         return 1
     else:
         return 0
@@ -29,6 +31,11 @@ class States(enum.IntEnum):
 def list_to_pairs(l):
     """
     From list(list(str)) ) to list([str, str])
+
+    >>> l = [[1, 2, 3], [45, 46], [98, 99, 100, 101]]
+    >>> list_to_pairs(l)
+    [[1, 2], [1, 3], [2, 3], [45, 46], [98, 99], [98, 100], [98, 101], [99, 100], [99, 101], [100, 101]]
+
     :param l:
     :return:
     """
@@ -39,14 +46,3 @@ def list_to_pairs(l):
             for k in range(j+1, length_i):
                 res.append([i[j], i[k]])
     return res
-
-
-def test_list_to_pairs():
-    l = [[1, 2, 3], [45, 46], [98, 99, 100, 101]]
-    res = list_to_pairs(l)
-    print(res)
-    assert res == [[1, 2], [1, 3], [2, 3], [45, 46], [98, 99], [98, 100], [98, 101], [99, 100], [99, 101], [100, 101]]
-
-
-if __name__ == "__main__":
-    test_list_to_pairs()
