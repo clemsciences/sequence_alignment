@@ -1,6 +1,7 @@
 extern crate nalgebra as na;
 
-use na::{Vector3};
+use na::Vector;
+// use nalgebra;
 
 
 fn main() {
