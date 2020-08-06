@@ -1,5 +1,7 @@
 """
 
+# TODO compute sum of log of probabilities instead of products of probabilities
+Write down teh new calculi first
 """
 
 import numpy as np
