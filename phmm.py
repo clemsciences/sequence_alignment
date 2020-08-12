@@ -12,19 +12,24 @@ from utils import *
 
 __author__ = "Clément Besnier <clem@clementbesnier.fr>"
 
-alphabet_ger = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
-                "u", "v", "w", "x", "y", "z", "ø", "ö"]
+alphabet_ger = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
+                "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+                "ø", "ö"]
 
 EPSILON = 1e-6
+np.random.seed(1994)
 
 
 class CoupleEmissionMatrix:
     def __init__(self, alphabet):
         self.alphabet = alphabet
-        self.n = len(alphabet)
         self.mat = nr.rand(self.n * self.n).reshape((self.n, self.n))
         self.mat /= self.mat.sum(axis=1)
         # self.mat = np.zeros((self.n, self.n))
+
+    @property
+    def n(self):
+        return len(self.alphabet)
 
     def get_emission_matrix(self):
         return self.mat
@@ -42,10 +47,13 @@ class CoupleEmissionMatrix:
 class SimpleEmissionMatrix:
     def __init__(self, alphabet):
         self.alphabet = alphabet
-        self.n = len(alphabet)
         self.mat = nr.rand(self.n).reshape((self.n,))
         self.mat /= self.mat.sum()
         # self.mat = np.zeros((self.n,))
+
+    @property
+    def n(self):
+        return len(self.alphabet)
 
     def get_emission_matrix(self):
         return self.mat
