@@ -333,8 +333,10 @@ def em_phmm_alphabeta(l_pairs, alphabet):
     param = PHMMParameters(0.2, 0.3, 0.4, 0.3, 0.25, pseudo_counter, alphabet)
     # while diff > precision:
     for _ in range(3):
+        print("I see")
         ksis = []
         gammas = []
+        print("E")
         for h in range(len(l_pairs)):
             phi, khi = l_pairs[h]
             alpha, alpha_fin = compute_forward(phi, khi, param.mat_trans.get_transition_matrix(), param.mat_emi_m.mat,
@@ -377,8 +379,9 @@ def em_phmm_alphabeta(l_pairs, alphabet):
                         ksis[h][i, j, l.value, :] /= np.sum(ksis[h][i, j, l.value, :])  # alpha_fin  # normalisation
                         gammas[h][i, j, l.value] = alpha[i, j, l] * beta[i, j, l.value]
                         # probability of a path given the both sequences
-                    gammas[h][i, j, :] /= np.sum(alpha[i, j, :] * beta[i, j, :]) + 0.00000001  # normalisation
+                    gammas[h][i, j, :] /= np.sum(alpha[i, j, :] * beta[i, j, :])  # normalisation
 
+        print("M")
         # M
 
         # estimation de la matrice de transition
@@ -419,7 +422,8 @@ def em_phmm_alphabeta(l_pairs, alphabet):
                     pi_is[carac] = np.sum(gammas[h][i, :, States.INSERTION.value]) * delta(phi[i] == alphabet[carac])
                 for j in range(len(khi)):
                     pi_is[carac] = np.sum(gammas[h][:, j, States.DELETION.value]) * delta(khi[j] == alphabet[carac])
-
+        print(pi_m)
+        print(pi_is)
         param.mat_emi_m.set_emission_matrix(pi_m)
         param.mat_emi_is.set_emission_matrix(pi_is)
         diff = param.update_params(1, 1)
@@ -441,6 +445,7 @@ if __name__ == "__main__":
     print(params.mat_trans.get_values())
     mot1 = "oug"
     mot2 = "øye"
+    print("VITERBI")
     best_alignment, seq1, seq2 = viterbi(mot1, mot2, params)
 
     print(mot1)
