@@ -377,6 +377,7 @@ def em_phmm_alphabeta(l_pairs, alphabet):
                               "m_emi", param.mat_emi_m.mat[alphabet.index(phi[i]), alphabet.index(khi[j])], "ksi",
                               ksis[h][i, j, l.value, :])
                         ksis[h][i, j, l.value, :] /= np.sum(ksis[h][i, j, l.value, :])  # alpha_fin  # normalisation
+                        print("somme ksi", np.sum(ksis[h][i, j, l.value, :]))
                         gammas[h][i, j, l.value] = alpha[i, j, l] * beta[i, j, l.value]
                         # probability of a path given the both sequences
                     gammas[h][i, j, :] /= np.sum(alpha[i, j, :] * beta[i, j, :])  # normalisation
@@ -390,10 +391,12 @@ def em_phmm_alphabeta(l_pairs, alphabet):
             for m in States:
                 a[l.value, m.value] = np.sum(
                     [np.sum(np.sum(ksis[g][:, :, l.value, m.value])) for g in range(len(l_pairs))])
+                print([np.sum(np.sum(ksis[g][:, :, l.value, m.value])) for g in range(len(l_pairs))])
             if np.sum(a[l.value, :]) == 0:
                 a[l.value, :] = 0
             else:
                 a[l.value, :] /= np.sum(a[l.value, :])
+        print("a", a)
         param.mat_trans.set_freq_transitions(a)
         # TODO problème : on ne peut pas à la fois instancier une matrice entière et instancier par des paramètres
         # param.mat_trans.update_params(1, 1)
@@ -422,8 +425,8 @@ def em_phmm_alphabeta(l_pairs, alphabet):
                     pi_is[carac] = np.sum(gammas[h][i, :, States.INSERTION.value]) * delta(phi[i] == alphabet[carac])
                 for j in range(len(khi)):
                     pi_is[carac] = np.sum(gammas[h][:, j, States.DELETION.value]) * delta(khi[j] == alphabet[carac])
-        print(pi_m)
-        print(pi_is)
+        print("pi_m", pi_m)
+        print("pi_is", pi_is)
         param.mat_emi_m.set_emission_matrix(pi_m)
         param.mat_emi_is.set_emission_matrix(pi_is)
         diff = param.update_params(1, 1)
