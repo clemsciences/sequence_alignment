@@ -1,7 +1,7 @@
 """
 
 # TODO compute sum of log of probabilities instead of products of probabilities
-Write down teh new calculi first
+Write down the new calculi first
 """
 
 import numpy as np
@@ -16,7 +16,7 @@ alphabet_ger = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
                 "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
                 "ø", "ö"]
 
-EPSILON = 1e-6
+EPSILON = 1e-3
 np.random.seed(1994)
 
 
@@ -200,7 +200,7 @@ def compute_forward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin, alphabe
                 alpha[i, j, 2] = mat_emi_is[alphabet.index(khi[j])] * \
                                  np.sum(mat_tra[2, :] * alpha[i, j - 1, :])
                 # print("\\alpha i j", alpha[i, j, :])
-                alpha[i, j, :] /= np.sum(alpha[i, j, :]) + EPSILON
+                alpha[i, j, :] = (alpha[i, j, :] + EPSILON)/(np.sum(alpha[i, j, :]) + EPSILON)
     # print("trans_fin", trans_fin)
     # print("alpha_fin", alpha[len(phi)-1, len(khi)-1, :])
     alpha_fin = np.sum(trans_fin * alpha[len(phi) - 1, len(khi) - 1, :])
@@ -218,13 +218,13 @@ def compute_backward(phi, khi, mat_tra, mat_emi_m, mat_emi_is, trans_fin, alphab
                 # print(mat_emi_m)
                 emi = np.array([mat_emi_m[alphabet.index(phi[i]), alphabet.index(khi[j])],
                                 mat_emi_is[alphabet.index(phi[i])], mat_emi_is[alphabet.index(khi[j])]])
-                print(emi)
+                print("emi", emi)
                 # print(i+1, j+1, i, j)
                 print([beta[i, j, 0], beta[i, j - 1, 1], beta[i - 1, j, 2]])
                 beta_transition = np.array([beta[i, j, 0], beta[i, j - 1, 1], beta[i - 1, j, 2]])
                 # problem, result is bad
                 beta[i - 1, j - 1, k] = np.sum((emi * mat_tra[k, :]) * beta_transition)
-            beta[i - 1, j - 1, :] /= np.sum(beta[i - 1, j - 1, :])
+            beta[i - 1, j - 1, :] = (beta[i - 1, j - 1, :] + EPSILON) / (np.sum(beta[i - 1, j - 1, :]) + EPSILON)
     return beta
 
 
@@ -343,7 +343,9 @@ def em_phmm_alphabeta(l_pairs, alphabet):
                                                param.mat_emi_is.mat, param.mat_trans.get_final_transition(), alphabet)
             beta = compute_backward(phi, khi, param.mat_trans.get_transition_matrix(), param.mat_emi_m.mat,
                                     param.mat_emi_is.mat, param.mat_trans.get_final_transition(), alphabet)
-
+            print("beta", beta[:, :, 0])
+            print("beta", beta[:, :, 1])
+            print("beta", beta[:, :, 2])
             transi = param.mat_trans.get_transition_matrix()
 
             ksis.append(np.zeros((len(phi), len(khi), 3, 3)))
@@ -373,10 +375,12 @@ def em_phmm_alphabeta(l_pairs, alphabet):
                                                                         param.mat_emi_is.mat[alphabet.index(khi[j])] * \
                                                                         beta[i, j, States.DELETION.value]
                         # print(alpha_fin)
-                        print("alpha", alpha[i, j, l.value], "beta", beta[i, j, :], "transi", transi[l.value, :],
+                        print("alpha", alpha[i, j, l.value], "beta", beta[i, j, l.value], "transi", transi[l.value, :],
                               "m_emi", param.mat_emi_m.mat[alphabet.index(phi[i]), alphabet.index(khi[j])], "ksi",
                               ksis[h][i, j, l.value, :])
-                        ksis[h][i, j, l.value, :] /= np.sum(ksis[h][i, j, l.value, :])  # alpha_fin  # normalisation
+                        sum_ksi = np.sum(ksis[h][i, j, l.value, :])
+                        if sum_ksi != 0:
+                            ksis[h][i, j, l.value, :] /= np.sum(ksis[h][i, j, l.value, :])  # alpha_fin  # normalisation
                         print("somme ksi", np.sum(ksis[h][i, j, l.value, :]))
                         gammas[h][i, j, l.value] = alpha[i, j, l] * beta[i, j, l.value]
                         # probability of a path given the both sequences
@@ -443,18 +447,18 @@ if __name__ == "__main__":
     l_paires = list_to_pairs(mots)
     print(l_paires)
     params = em_phmm_alphabeta(l_paires, alphabet_ger)
-    print(params.mat_emi_is.mat)
-    print(params.mat_emi_m.mat)
-    print(params.mat_trans.get_values())
-    mot1 = "oug"
-    mot2 = "øye"
-    print("VITERBI")
-    best_alignment, seq1, seq2 = viterbi(mot1, mot2, params)
-
-    print(mot1)
-    print(mot2)
-    print(seq1)
-    print(seq2)
-    print(best_alignment)
+    # print(params.mat_emi_is.mat)
+    # print(params.mat_emi_m.mat)
+    # print(params.mat_trans.get_values())
+    # mot1 = "oug"
+    # mot2 = "øye"
+    # print("VITERBI")
+    # best_alignment, seq1, seq2 = viterbi(mot1, mot2, params)
+    #
+    # print(mot1)
+    # print(mot2)
+    # print(seq1)
+    # print(seq2)
+    # print(best_alignment)
 
     # test_list_to_pairs()
